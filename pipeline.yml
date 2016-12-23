@@ -10,11 +10,26 @@ resources:
   source:
     host: 192.168.0.2
     port: 6379
-    key: foo
+    key: numbers
+- name: numbers
+  type: redis
+  source:
+    host: 192.168.0.2
+    port: 6379
+    key: primes
+- name: tick
+  type: time
+  source: {interval: 10s}
+- name: scripts
+  uri: https://github.com/benmoss/redis-resource.git
+  branch: master
 
 jobs:
 - name: increment
+  serial: true
   plan:
+    - get: tick
+      trigger: true
     - get: numbers
     - task: inc
       config:
@@ -33,25 +48,27 @@ jobs:
       params:
         file: output/stuff
 
-- name: decrement
+- name: find-primes
+  serial: true
   plan:
+    - get: scripts
     - get: numbers
-    - task: dec
+      trigger: true
+    - task: is-prime
       config:
         platform: linux
         image_resource:
           type: docker-image
           source:
-            repository: alpine
-            tag: latest
+            repository: ruby
+            tag: 2.1
         inputs: [name: numbers]
         outputs: [name: output]
         run:
           path: /bin/sh
-          args: [-c, set -ex; (expr $(cat ./numbers/value) - 1) > output/stuff || true]
     - put: numbers
       params:
-        file: output/stuff
+        file: scripts/scripts/is_prime.rb
 
 - name: put-a-zero
   plan:
