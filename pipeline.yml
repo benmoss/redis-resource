@@ -1,0 +1,72 @@
+resource_types:
+- name: redis
+  type: docker-image
+  source:
+    repository: benmoss/concourse-redis-resource
+
+resources:
+- name: numbers
+  type: redis
+  source:
+    host: 192.168.0.2
+    port: 6379
+    key: foo
+
+jobs:
+- name: increment
+  plan:
+    - get: numbers
+    - task: inc
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: alpine
+            tag: latest
+        inputs: [name: numbers]
+        outputs: [name: output]
+        run:
+          path: /bin/sh
+          args: [-c, set -ex; expr $(cat ./numbers/value) + 1 > output/stuff || true]
+    - put: numbers
+      params:
+        file: output/stuff
+
+- name: decrement
+  plan:
+    - get: numbers
+    - task: dec
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: alpine
+            tag: latest
+        inputs: [name: numbers]
+        outputs: [name: output]
+        run:
+          path: /bin/sh
+          args: [-c, set -ex; (expr $(cat ./numbers/value) - 1) > output/stuff || true]
+    - put: numbers
+      params:
+        file: output/stuff
+
+- name: put-a-zero
+  plan:
+    - task: foo
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: alpine
+            tag: latest
+        outputs: [name: output]
+        run:
+          path: /bin/sh
+          args: [-c, "set -ex; echo 0 > ./output/stuff"]
+    - put: numbers
+      params:
+        file: output/stuff

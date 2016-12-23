@@ -1,0 +1,40 @@
+#!/bin/bash
+# vim: set ft=sh
+
+set -ex
+
+exec 3>&1 # make stdout available as fd 3 for the result
+exec 1>&2 # redirect all output to stderr for logging
+
+source=$1
+
+if [ -z "$source" ]; then
+  echo "usage: $0 <path/to/source>"
+  exit 1
+fi
+
+cd $source
+
+payload=$(mktemp $TMPDIR/redis-resource-request.XXXXXX)
+cat > $payload <&0
+
+host=$(jq -r '.source.host // ""' < $payload)
+port=$(jq -r '.source.port // ""' < $payload)
+key=$(jq -r '.source.key // ""' < $payload)
+file=$(jq -r '.params.file // ""' < $payload)
+
+redis() {
+  redis-cli --raw -h $host -p $port "$@"
+}
+
+find .
+value=$(cat $file)
+ref=$(uuidgen)
+
+redis lpush "$key-l" "$ref"
+redis hset "$key-h" "$ref" "$value"
+
+jq -n "{
+  version: {ref: $(echo $ref | jq -R .)},
+  metadata: [{name: \"value\", value: $(echo $value | jq -R .)}]
+}" >&3
