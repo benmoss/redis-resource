@@ -8,6 +8,6 @@ if Prime.prime?(num)
   File.write("./output/stuff", num)
   exit 0
 else
-  puts "{num} is not prime"
+  puts "#{num} is not prime"
   exit 1
 end
