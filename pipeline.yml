@@ -30,6 +30,7 @@ jobs:
     - get: numbers-trigger
       resource: numbers
       trigger: true
+    - get: scripts
     - task: inc
       input_mapping: {numbers: numbers-trigger}
       config:
@@ -39,7 +40,9 @@ jobs:
           source:
             repository: ruby
             tag: "2.1"
-        inputs: [name: numbers]
+        inputs:
+        - name: numbers
+        - name: scripts
         outputs: [name: output]
         run:
           path: scripts/scripts/increment.rb
