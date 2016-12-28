@@ -37,13 +37,12 @@ jobs:
         image_resource:
           type: docker-image
           source:
-            repository: alpine
-            tag: latest
+            repository: ruby
+            tag: "2.1"
         inputs: [name: numbers]
         outputs: [name: output]
         run:
-          path: /bin/sh
-          args: [-c, set -ex; expr $(cat ./numbers/value) + 1 > output/stuff || true]
+          path: scripts/scripts/increment.rb
     - put: numbers
       params:
         file: output/stuff
