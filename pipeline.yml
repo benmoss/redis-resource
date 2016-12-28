@@ -17,22 +17,21 @@ resources:
     host: 192.168.0.2
     port: 6379
     key: primes
-- name: tick
-  type: time
-  source: {interval: 10s}
 - name: scripts
   type: git
-  uri: https://github.com/benmoss/redis-resource.git
-  branch: master
+  source:
+    uri: https://github.com/benmoss/redis-resource.git
+    branch: master
 
 jobs:
 - name: increment
   serial: true
   plan:
-    - get: tick
+    - get: numbers-trigger
+      resource: numbers
       trigger: true
-    - get: numbers
     - task: inc
+      input_mapping: {numbers: numbers-trigger}
       config:
         platform: linux
         image_resource:
@@ -62,8 +61,10 @@ jobs:
           type: docker-image
           source:
             repository: ruby
-            tag: 2.1
-        inputs: [name: numbers]
+            tag: "2.1"
+        inputs:
+          - name: numbers
+          - name: scripts
         outputs: [name: output]
         run:
           path: scripts/scripts/is_prime.rb
